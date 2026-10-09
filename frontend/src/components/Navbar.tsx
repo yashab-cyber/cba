@@ -20,6 +20,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   onLogout
 }) => {
   const titles: Record<string, { title: string; subtitle: string }> = {
+    home: { title: 'CBA Public Portal', subtitle: 'Institutional overview, architecture, FX converter, and developer SDK' },
     overview: { title: 'Executive Overview', subtitle: 'Central Banking operations, circulation metrics, and real-time transaction activity' },
     marketplace: { title: 'Autonomous Service Marketplace', subtitle: 'Machine-to-machine catalog for compute, inference, code synthesis, and data APIs' },
     wallets: { title: 'Wallets & Balances', subtitle: 'Deterministic agent liability wallets and balance audits' },

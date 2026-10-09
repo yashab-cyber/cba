@@ -73,7 +73,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div>
           <div className="font-semibold text-slate-100 text-sm tracking-wide flex items-center gap-1.5">
             Central Bank
-            <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono">v1.3</span>
+            <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono">v1.4</span>
           </div>
           <p className="text-[11px] text-slate-400">Financial OS for AI Agents</p>
         </div>
