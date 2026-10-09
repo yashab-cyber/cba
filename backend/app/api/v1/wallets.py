@@ -73,11 +73,17 @@ def get_verified_wallet_balance(
 def get_wallet_activity(
     wallet_id: str,
     limit: int = 50,
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Wallet '{wallet_id}' not found")
+
+    if current_user.role not in ["admin", "operator", "auditor"]:
+        user_agent_ids = [a.id for a in current_user.agents]
+        if wallet.agent_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this wallet")
 
     txs = db.query(Transaction).filter(
         or_(

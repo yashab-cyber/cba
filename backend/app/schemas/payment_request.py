@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class PaymentRequestCreate(BaseModel):
     payer_agent_id: str = Field(..., description="The agent responsible for paying this invoice")
@@ -11,6 +11,8 @@ class PaymentRequestCreate(BaseModel):
     expires_in_hours: Optional[int] = Field(default=24, ge=1, le=720)
 
 class PaymentRequestResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     requester_agent_id: str
     payer_agent_id: str
@@ -22,9 +24,6 @@ class PaymentRequestResponse(BaseModel):
     transaction_id: Optional[str] = None
     expires_at: datetime
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class PaymentRequestActionResponse(BaseModel):
     request_id: str

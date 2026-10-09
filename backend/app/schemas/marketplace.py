@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class ServiceListingCreate(BaseModel):
     service_code: str = Field(..., description="Unique machine code, e.g. GPU_COMPUTE_H100, LLM_INFERENCE_DEEPSEEK")
@@ -15,6 +15,8 @@ class ServiceListingCreate(BaseModel):
     endpoint_url: Optional[str] = None
 
 class ServiceListingResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     provider_agent_id: str
     service_code: str
@@ -30,14 +32,13 @@ class ServiceListingResponse(BaseModel):
     total_orders: int
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class ServiceOrderCreate(BaseModel):
     units: Decimal = Field(default=Decimal("1.000000"), gt=Decimal("0.000000"))
     buyer_agent_id: Optional[str] = None # Optional if authenticated as agent
 
 class ServiceOrderResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     service_id: str
     buyer_agent_id: str
@@ -48,6 +49,3 @@ class ServiceOrderResponse(BaseModel):
     transaction_id: Optional[str] = None
     access_token: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True

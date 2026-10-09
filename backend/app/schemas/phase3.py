@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class RiskAlertResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     agent_id: str
     transaction_id: Optional[str] = None
@@ -14,9 +16,6 @@ class RiskAlertResponse(BaseModel):
     status: str
     action_taken: str
     created_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class MerkleProofStep(BaseModel):
     position: str # left or right
@@ -58,6 +57,8 @@ class GovernanceProposalCreate(BaseModel):
     required_approvals: int = 2
 
 class GovernanceProposalResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     proposer_id: str
     action_type: str
@@ -67,6 +68,3 @@ class GovernanceProposalResponse(BaseModel):
     status: str
     created_at: datetime
     executed_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True

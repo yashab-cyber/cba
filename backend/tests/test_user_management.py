@@ -162,3 +162,102 @@ def test_multi_tenant_agent_and_wallet_isolation(client, db_session):
     )
     assert detail_res.status_code == 403
     assert "Unauthorized" in detail_res.json()["detail"]
+
+    # 4. IDOR Protection: Developer cannot generate credentials or freeze an agent owned by admin
+    cred_res = client.post(
+        f"/api/v1/agents/{admin_agent.id}/credentials",
+        headers={"Authorization": f"Bearer {dev_token}"}
+    )
+    assert cred_res.status_code == 403
+    assert "Forbidden" in cred_res.json()["detail"] or "permission" in cred_res.json()["detail"]
+
+    freeze_res = client.post(
+        f"/api/v1/agents/{admin_agent.id}/freeze?freeze=true",
+        headers={"Authorization": f"Bearer {dev_token}"}
+    )
+    assert freeze_res.status_code == 403
+
+def test_cross_tenant_invoice_and_wallet_authorization(client, db_session):
+    admin = db_session.query(User).filter(User.role == "admin").first()
+    admin_token = create_access_token(subject=admin.id, role=admin.role)
+
+    # Create User A and User B
+    user_a = User(
+        email="tenant_a@cba.bank",
+        hashed_password="some_hashed_password",
+        role="user",
+        is_active=True
+    )
+    user_b = User(
+        email="tenant_b@cba.bank",
+        hashed_password="some_hashed_password",
+        role="user",
+        is_active=True
+    )
+    db_session.add_all([user_a, user_b])
+    db_session.commit()
+
+    token_a = create_access_token(subject=user_a.id, role=user_a.role)
+    token_b = create_access_token(subject=user_b.id, role=user_b.role)
+
+    # Register Agent for User A and Agent for User B
+    res_a = client.post(
+        "/api/v1/agents",
+        json={"id": "agent_alpha_sec", "name": "Alpha Sec", "initial_funding": "500.00"},
+        headers={"Authorization": f"Bearer {token_a}"}
+    )
+    assert res_a.status_code == 201
+
+    res_b = client.post(
+        "/api/v1/agents",
+        json={"id": "agent_bravo_sec", "name": "Bravo Sec", "initial_funding": "500.00"},
+        headers={"Authorization": f"Bearer {token_b}"}
+    )
+    assert res_b.status_code == 201
+
+    # User A creates a payment request (invoice) billed to User B's agent
+    # We can create it via DB or API
+    from app.models.payment_request import PaymentRequest
+    from datetime import datetime, timezone, timedelta
+    from decimal import Decimal
+
+    req = PaymentRequest(
+        id="pr_test_sec_idor_01",
+        requester_agent_id="agent_alpha_sec",
+        payer_agent_id="agent_bravo_sec",
+        amount=Decimal("50.000000"),
+        service_code="AUDIT_INVOICE",
+        service_description="Cross-tenant test invoice",
+        status="PENDING",
+        expires_at=datetime.now(timezone.utc) + timedelta(days=1)
+    )
+    db_session.add(req)
+    db_session.commit()
+
+    # User A tries to approve the invoice that User B's agent must pay -> 403 Forbidden!
+    unauth_approve = client.post(
+        f"/api/v1/payment-requests/{req.id}/approve",
+        headers={"Authorization": f"Bearer {token_a}"}
+    )
+    assert unauth_approve.status_code == 403
+    assert "Only the owner of the payer agent can approve" in unauth_approve.json()["detail"]
+
+    # User A tries to view User B's wallet activity -> 403 Forbidden!
+    from app.models.wallet import Wallet
+    wallet_b = db_session.query(Wallet).filter(Wallet.agent_id == "agent_bravo_sec").first()
+    assert wallet_b is not None
+
+    unauth_activity = client.get(
+        f"/api/v1/wallets/{wallet_b.id}/activity",
+        headers={"Authorization": f"Bearer {token_a}"}
+    )
+    assert unauth_activity.status_code == 403
+    assert "Access denied" in unauth_activity.json()["detail"]
+
+    # User B (the actual owner) can approve the invoice successfully
+    auth_approve = client.post(
+        f"/api/v1/payment-requests/{req.id}/approve",
+        headers={"Authorization": f"Bearer {token_b}"}
+    )
+    assert auth_approve.status_code == 200
+    assert auth_approve.json()["status"] == "FULFILLED"

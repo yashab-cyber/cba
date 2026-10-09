@@ -1,11 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Union
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class SpendingPolicyBase(BaseModel):
     max_amount_per_tx: Decimal = Field(default=Decimal("1000.000000"), ge=0)
-    daily_spending_limit: Decimal = Field(default=Decimal("5000.000000"), ge=0)
+    daily_spending_limit: Decimal = Field(default=Decimal("50000.000000"), ge=0)
     monthly_spending_limit: Decimal = Field(default=Decimal("50000.000000"), ge=0)
     human_approval_threshold: Decimal = Field(default=Decimal("2500.000000"), ge=0)
     allowed_counterparties: Union[str, List[str]] = Field(default="ALL")
@@ -20,6 +20,8 @@ class SpendingPolicyUpdate(BaseModel):
     emergency_freeze: Optional[bool] = None
 
 class SpendingPolicyResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     agent_id: str
     max_amount_per_tx: Decimal
@@ -30,6 +32,3 @@ class SpendingPolicyResponse(BaseModel):
     emergency_freeze: bool
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True

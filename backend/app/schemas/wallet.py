@@ -1,9 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class WalletResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     agent_id: Optional[str] = None
     wallet_type: str
@@ -12,9 +14,6 @@ class WalletResponse(BaseModel):
     status: str
     created_at: datetime
     updated_at: datetime
-
-    class Config:
-        from_attributes = True
 
 class WalletBalanceResponse(BaseModel):
     wallet_id: str

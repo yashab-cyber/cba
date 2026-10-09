@@ -32,6 +32,14 @@ def create_payment(
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
 
+    # If actor was authenticated via signature, signature validation is strictly mandatory
+    if actor_type == "AGENT_SIGNED":
+        if not x_cba_signature or not x_cba_timestamp:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Missing X-CBA-SIGNATURE or X-CBA-TIMESTAMP required for signed payments"
+            )
+
     # 1. Validate or generate Idempotency Key
     if not idempotency_key:
         idempotency_key = f"idem_{uuid.uuid4().hex}"
@@ -42,7 +50,12 @@ def create_payment(
         if not sender_wallet:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Agent does not have an active wallet")
     else:
-        # User/Operator: if sender_wallet is specified in metadata or default to treasury
+        # User/Operator: Only admin or operator can directly spend from central treasury
+        if user_instance and user_instance.role not in ["admin", "operator"]:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Only Central Bank Administrators can initiate direct transfers from the Treasury"
+            )
         sender_wallet = db.query(Wallet).filter(Wallet.id == "wal_central_treasury").first()
         if not sender_wallet:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="System treasury wallet not initialized")
@@ -212,11 +225,17 @@ def list_transactions(
 @router.get("/{transaction_id}", response_model=TransactionReceiptResponse)
 def get_transaction_receipt(
     transaction_id: str,
+    current_user: Optional[User] = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
     if not tx:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Transaction '{transaction_id}' not found")
+
+    if current_user and current_user.role not in ["admin", "operator", "auditor"]:
+        user_wallet_ids = [a.wallet.id for a in current_user.agents if a.wallet]
+        if tx.sender_wallet_id not in user_wallet_ids and tx.recipient_wallet_id not in user_wallet_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this transaction receipt")
 
     entries = db.query(LedgerEntry).filter(LedgerEntry.transaction_id == tx.id).all()
     ledger_responses = [
@@ -265,6 +284,19 @@ def approve_held_transaction(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    tx = db.query(Transaction).filter(Transaction.id == transaction_id).first()
+    if not tx:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Transaction '{transaction_id}' not found")
+
+    if current_user.role not in ["admin", "operator"]:
+        sender_agent_id = tx.sender_wallet.agent_id if tx.sender_wallet else None
+        user_agent_ids = [a.id for a in current_user.agents]
+        if not sender_agent_id or sender_agent_id not in user_agent_ids:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Unauthorized to approve transactions for this wallet"
+            )
+
     try:
         tx = TransactionService.approve_transaction(db, transaction_id, current_user.id)
         entries = db.query(LedgerEntry).filter(LedgerEntry.transaction_id == tx.id).all()

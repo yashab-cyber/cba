@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 class PaymentCreate(BaseModel):
     recipient_agent_id: Optional[str] = Field(None, description="Target recipient agent ID")
@@ -12,6 +12,8 @@ class PaymentCreate(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 class LedgerEntryResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     ledger_account_id: str
     account_number: Optional[str] = None
@@ -21,10 +23,9 @@ class LedgerEntryResponse(BaseModel):
     entry_hash: Optional[str] = None
     created_at: datetime
 
-    class Config:
-        from_attributes = True
-
 class TransactionResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     idempotency_key: str
     sender_wallet_id: str
@@ -40,9 +41,6 @@ class TransactionResponse(BaseModel):
     description: Optional[str] = None
     created_at: datetime
     settled_at: Optional[datetime] = None
-
-    class Config:
-        from_attributes = True
 
 class TransactionReceiptResponse(BaseModel):
     transaction: TransactionResponse

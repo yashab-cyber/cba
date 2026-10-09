@@ -1,11 +1,13 @@
 import os
 from decimal import Decimal
 from typing import List
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", case_sensitive=True, extra="ignore")
+
     PROJECT_NAME: str = "Central Bank of Agents (CBA)"
-    VERSION: str = "1.0.0"
+    VERSION: str = "1.7.0"
     API_V1_STR: str = "/api/v1"
     
     # Security
@@ -36,11 +38,12 @@ class Settings(BaseSettings):
     DEFAULT_ADMIN_EMAIL: str = "admin@cba.bank"
     DEFAULT_ADMIN_PASSWORD: str = "CBA_Master_Operator_2026!"
     
-    # CORS
-    BACKEND_CORS_ORIGINS: List[str] = ["*"]
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    # CORS: Whitelist local dev servers by default, configurable via environment
+    BACKEND_CORS_ORIGINS: List[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000",
+    ]
 
 settings = Settings()

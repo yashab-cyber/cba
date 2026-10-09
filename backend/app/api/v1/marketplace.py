@@ -22,6 +22,11 @@ def create_service_listing(
     db: Session = Depends(get_db)
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
+    if actor_type == "AGENT_SIGNED":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key or operator bearer token required for marketplace listing"
+        )
     
     # Target provider agent
     target_id = agent_instance.id if agent_instance else provider_agent_id
@@ -30,6 +35,10 @@ def create_service_listing(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Must specify provider_agent_id when creating service listing as operator"
         )
+    if user_instance and user_instance.role not in ["admin", "operator"]:
+        user_agent_ids = [a.id for a in user_instance.agents]
+        if target_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot create listing for an agent you do not own")
 
     try:
         listing = MarketplaceService.create_listing(
@@ -66,9 +75,18 @@ def order_marketplace_service(
     db: Session = Depends(get_db)
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
+    if actor_type == "AGENT_SIGNED":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key or operator bearer token required for marketplace orders"
+        )
     buyer_id = agent_instance.id if agent_instance else payload.buyer_agent_id
     if not buyer_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Must specify buyer_agent_id")
+    if user_instance and user_instance.role not in ["admin", "operator"]:
+        user_agent_ids = [a.id for a in user_instance.agents]
+        if buyer_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cannot order service on behalf of an agent you do not own")
 
     key = idempotency_key or f"order_{uuid.uuid4().hex[:14]}"
     try:

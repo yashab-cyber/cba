@@ -2,6 +2,7 @@ import json
 from typing import List, Optional
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
+from sqlalchemy import or_
 from app.database import get_db
 from app.models.audit import AuditEvent
 from app.schemas.audit import AuditEventResponse
@@ -19,6 +20,11 @@ def list_audit_events(
     db: Session = Depends(get_db)
 ):
     query = db.query(AuditEvent)
+    if current_user.role not in ["admin", "operator", "auditor"]:
+        user_agent_ids = [a.id for a in current_user.agents]
+        allowed_ids = [current_user.id] + user_agent_ids
+        query = query.filter(or_(AuditEvent.actor_id.in_(allowed_ids), AuditEvent.resource_id.in_(allowed_ids)))
+
     if actor_id:
         query = query.filter(AuditEvent.actor_id == actor_id)
     if action:

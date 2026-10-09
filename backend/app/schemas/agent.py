@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from app.schemas.wallet import WalletResponse
 from app.schemas.policy import SpendingPolicyResponse, SpendingPolicyBase
 
@@ -20,6 +20,8 @@ class AgentUpdate(BaseModel):
     metadata: Optional[Dict[str, Any]] = None
 
 class AgentResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
     owner_id: str
     name: str
@@ -30,9 +32,6 @@ class AgentResponse(BaseModel):
     updated_at: datetime
     wallet_id: Optional[str] = None
     cached_balance: Optional[Decimal] = None
-
-    class Config:
-        from_attributes = True
 
 class AgentDetailResponse(BaseModel):
     id: str

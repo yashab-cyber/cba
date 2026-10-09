@@ -24,6 +24,11 @@ def create_payment_request(
     db: Session = Depends(get_db)
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
+    if actor_type == "AGENT_SIGNED":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key or operator bearer token required to create payment request"
+        )
     
     # Requester is the calling agent, or if operator, must be specified in headers or context
     requester_agent_id = agent_instance.id if agent_instance else None
@@ -118,6 +123,11 @@ def approve_payment_request(
     db: Session = Depends(get_db)
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
+    if actor_type == "AGENT_SIGNED":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key or operator bearer token required to approve payment request"
+        )
 
     req = db.query(PaymentRequest).filter(PaymentRequest.id == request_id).first()
     if not req:
@@ -133,9 +143,13 @@ def approve_payment_request(
         db.commit()
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Payment request has expired")
 
-    # Authorize: Must be payer agent or human operator
+    # Authorize: Must be payer agent or human operator who owns the payer agent
     if agent_instance and agent_instance.id != req.payer_agent_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the designated payer agent or admin can approve this invoice")
+    if user_instance and user_instance.role not in ["admin", "operator"]:
+        user_agent_ids = [a.id for a in user_instance.agents]
+        if req.payer_agent_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner of the payer agent can approve this invoice")
 
     payer_agent = db.query(Agent).filter(Agent.id == req.payer_agent_id).first()
     requester_agent = db.query(Agent).filter(Agent.id == req.requester_agent_id).first()
@@ -181,6 +195,11 @@ def reject_payment_request(
     db: Session = Depends(get_db)
 ):
     actor_type, actor_id, agent_instance, user_instance = actor_info
+    if actor_type == "AGENT_SIGNED":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="API key or operator bearer token required to reject payment request"
+        )
 
     req = db.query(PaymentRequest).filter(PaymentRequest.id == request_id).first()
     if not req:
@@ -189,9 +208,13 @@ def reject_payment_request(
     if req.status != "PENDING":
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Cannot reject invoice in status {req.status}")
 
-    # Authorize: Must be payer agent or human operator
+    # Authorize: Must be payer agent or human operator who owns the payer agent
     if agent_instance and agent_instance.id != req.payer_agent_id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the designated payer agent or admin can reject this invoice")
+    if user_instance and user_instance.role not in ["admin", "operator"]:
+        user_agent_ids = [a.id for a in user_instance.agents]
+        if req.payer_agent_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the owner of the payer agent can reject this invoice")
 
     req.status = "REJECTED"
     db.add(req)

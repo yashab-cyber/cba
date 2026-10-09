@@ -16,6 +16,13 @@ from app.api.deps import get_current_user
 
 router = APIRouter(prefix="/agents", tags=["AI Agent Identity & Management"])
 
+def check_agent_owner_or_admin(agent: Agent, user: User):
+    if user.role not in ["admin", "operator"] and agent.owner_id != user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: You do not have permission to manage this agent"
+        )
+
 @router.post("", response_model=AgentResponse, status_code=status.HTTP_201_CREATED)
 def register_agent(
     payload: AgentCreate,
@@ -137,6 +144,11 @@ def generate_credentials(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
+
     try:
         cred, raw_key = AgentService.generate_credentials(
             db=db,
@@ -166,6 +178,7 @@ def update_spending_policy(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
 
     policy = agent.spending_policy
     if not policy:
@@ -225,6 +238,11 @@ def toggle_emergency_freeze(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    agent = db.query(Agent).filter(Agent.id == agent_id).first()
+    if not agent:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
+
     try:
         policy = AgentService.set_emergency_freeze(db, agent_id, freeze, current_user.id)
         try:
@@ -257,6 +275,7 @@ def toggle_agent_suspension(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
     
     agent.status = status_str.upper()
     db.add(agent)
@@ -294,6 +313,8 @@ def get_agent_wallet(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
+
     if not agent.wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Wallet for agent '{agent_id}' not found")
     return WalletResponse.model_validate(agent.wallet)
@@ -308,6 +329,7 @@ def generate_cryptographic_keypair(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
 
     private_hex, public_hex = CryptoIdentityService.generate_keypair()
     agent.public_key = public_hex
@@ -341,6 +363,7 @@ def register_agent_public_key(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+    check_agent_owner_or_admin(agent, current_user)
 
     agent.public_key = public_key.strip()
     db.add(agent)

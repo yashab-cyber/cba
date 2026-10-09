@@ -108,7 +108,7 @@ def get_authenticated_actor(
     2. High-entropy API Keys (X-CBA-API-KEY or Bearer cba_live_...)
     3. Operator JWT Bearer tokens
     """
-    # 0. Check cryptographic signature
+    # 0. Check cryptographic signature (Must be verified by endpoints supporting signed execution)
     if x_cba_signature and x_cba_agent_id:
         agent = db.query(Agent).filter(Agent.id == x_cba_agent_id).first()
         if not agent:
@@ -117,7 +117,7 @@ def get_authenticated_actor(
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"Agent '{x_cba_agent_id}' does not have a registered Ed25519 public key")
         if agent.status == "REVOKED":
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Agent identity is revoked")
-        return "AGENT", agent.id, agent, None
+        return "AGENT_SIGNED", agent.id, agent, None
 
     # 1. Check agent key
     if x_cba_api_key:
