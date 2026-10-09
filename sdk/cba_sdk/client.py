@@ -298,6 +298,43 @@ class CBAClient:
         """Rejects a payment request."""
         return self._handle_response(self.http.post(f"/api/v1/payment-requests/{request_id}/reject", params={"reason": reason}))
 
+    # Phase 3 Advanced Infrastructure Methods
+
+    def get_merkle_root(self) -> Dict[str, Any]:
+        """Retrieves cryptographic SHA-256 Merkle root of the entire ledger."""
+        return self._handle_response(self.http.get("/api/v1/advanced/merkle-root"))
+
+    def get_merkle_proof(self, entry_id: str) -> Dict[str, Any]:
+        """Retrieves inclusion proof path for an individual double-entry ledger journal entry."""
+        return self._handle_response(self.http.get(f"/api/v1/advanced/merkle-proof/{entry_id}"))
+
+    def verify_merkle_proof(self, leaf_hash: str, merkle_root: str, proof_path: List[Dict[str, str]]) -> Dict[str, Any]:
+        """Cryptographically verifies a Merkle inclusion proof against the known root."""
+        payload = {
+            "leaf_hash": leaf_hash,
+            "merkle_root": merkle_root,
+            "proof_path": proof_path
+        }
+        return self._handle_response(self.http.post("/api/v1/advanced/verify-merkle-proof", json=payload))
+
+    def convert_currency(self, from_currency: str, to_currency: str, amount: Union[float, str, Decimal]) -> Dict[str, Any]:
+        """Converts currency amount across CBAC, CBAC_COMPUTE, and USD_SIM."""
+        payload = {
+            "from_currency": from_currency,
+            "to_currency": to_currency,
+            "amount": str(amount)
+        }
+        return self._handle_response(self.http.post("/api/v1/advanced/convert", json=payload))
+
+    def get_supported_currencies(self) -> Dict[str, Any]:
+        """Returns all supported internal and pegged currencies."""
+        return self._handle_response(self.http.get("/api/v1/advanced/currencies"))
+
+    def list_risk_alerts(self, status_filter: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Lists active anomaly alerts flagged by the risk engine."""
+        params = {"status_filter": status_filter} if status_filter else {}
+        return self._handle_response(self.http.get("/api/v1/advanced/risk-alerts", params=params))
+
     def close(self):
         self.http.close()
 

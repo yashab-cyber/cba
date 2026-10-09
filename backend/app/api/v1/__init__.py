@@ -8,6 +8,7 @@ from app.api.v1.central_bank import router as central_bank_router
 from app.api.v1.audit import router as audit_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.marketplace import router as marketplace_router
+from app.api.v1.advanced import router as advanced_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(auth_router)
@@ -19,5 +20,6 @@ api_v1_router.include_router(central_bank_router)
 api_v1_router.include_router(audit_router)
 api_v1_router.include_router(analytics_router)
 api_v1_router.include_router(marketplace_router)
+api_v1_router.include_router(advanced_router)
 
 __all__ = ["api_v1_router"]

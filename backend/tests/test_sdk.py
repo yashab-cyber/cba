@@ -43,3 +43,12 @@ def test_sdk_signed_payment_and_marketplace(client, db_session, seeded_agents):
     bal = sdk_client.get_balance(wallet_id=ag1.wallet.id)
     assert bal.is_reconciled is True
     assert bal.status == "ACTIVE"
+
+    # Test 4: Phase 3 Merkle Root via SDK
+    merkle_data = sdk_client.get_merkle_root()
+    assert "merkle_root" in merkle_data
+    assert len(merkle_data["merkle_root"]) == 64
+
+    # Test 5: Phase 3 FX Conversion via SDK
+    fx_data = sdk_client.convert_currency("USD_SIM", "CBAC", 10.0)
+    assert Decimal(str(fx_data["converted_amount"])) == Decimal("100.000000")

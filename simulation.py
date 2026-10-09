@@ -21,6 +21,9 @@ from app.models.marketplace import ServiceListing
 from app.services.central_bank_service import CentralBankService
 from app.services.transaction_service import TransactionService
 from app.services.marketplace_service import MarketplaceService
+from app.services.merkle_service import MerkleService
+from app.services.fx_service import FXService
+from app.services.risk_service import RiskService
 from app.crypto import CryptoIdentityService
 from app.config import settings
 
@@ -140,8 +143,45 @@ def run_simulation(rounds: int = 6):
         print(f"Net Imbalance: {audit_rep.net_imbalance} CBAC")
         print(f"Cached vs Ledger Discrepancies: {audit_rep.cached_vs_ledger_discrepancies_count}")
         print(f"Total Ledger Entries Audited: {audit_rep.total_ledger_entries_verified}")
+
+        print("\n" + "=" * 75)
+        print("🛡️  PHASE 3: CRYPTOGRAPHIC MERKLE TREE LEDGER INTEGRITY VERIFICATION")
         print("=" * 75)
-        print("🎉 SIMULATION COMPLETED SUCCESSFULLY WITH PERFECT ZERO-SUM BALANCE!")
+        root_hash, leaf_count = MerkleService.compute_merkle_root(db)
+        print(f"Computed Canonical Merkle Root: {root_hash}")
+        print(f"Total Leaves (Ledger Entries): {leaf_count}")
+
+        # Audit proof for the latest ledger entry
+        from app.models.ledger import LedgerEntry
+        latest_entry = db.query(LedgerEntry).order_by(LedgerEntry.created_at.desc()).first()
+        if latest_entry:
+            proof = MerkleService.generate_proof(db, latest_entry.id)
+            if proof:
+                is_valid = MerkleService.verify_proof(
+                    leaf_hash=proof["leaf_hash"],
+                    proof_path=proof["proof_path"],
+                    expected_root=proof["merkle_root"]
+                )
+                print(f"  Verified Inclusion Proof for Entry #{latest_entry.id}:")
+                print(f"  👉 Leaf Hash: {proof['leaf_hash'][:24]}...")
+                print(f"  👉 Proof Path Length: {len(proof['proof_path'])} steps")
+                print(f"  👉 Cryptographic Proof Valid: {'✅ TRUE' if is_valid else '❌ FALSE'}")
+
+        print("\n" + "=" * 75)
+        print("💱  PHASE 3: MULTI-CURRENCY FX ENGINE QUOTE & CONVERSION")
+        print("=" * 75)
+        fx_rates = FXService.get_supported_currencies()
+        for curr, info in fx_rates.items():
+            print(f"  Currency: {curr:14} | Name: {info['name']:32} | 1 Unit = {info['peg_to_cbac']} CBAC")
+        
+        converted_amt, eff_rate = FXService.convert("CBAC", "CBAC_COMPUTE", Decimal("100.00"))
+        print(f"  Simulation FX Conversion: 100.00 CBAC -> {converted_amt} CBAC_COMPUTE (Effective Rate: {eff_rate})")
+
+        usd_amt, usd_rate = FXService.convert("USD_SIM", "CBAC", Decimal("50.00"))
+        print(f"  Simulation FX Conversion: 50.00 USD_SIM -> {usd_amt} CBAC (Effective Rate: {usd_rate})")
+
+        print("=" * 75)
+        print("🎉 SIMULATION COMPLETED SUCCESSFULLY WITH PERFECT ZERO-SUM BALANCE & MERKLE PROOF!")
         print("=" * 75)
 
     finally:

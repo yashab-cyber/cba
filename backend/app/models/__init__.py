@@ -7,6 +7,8 @@ from app.models.policy import SpendingPolicy
 from app.models.payment_request import PaymentRequest
 from app.models.audit import AuditEvent
 from app.models.marketplace import ServiceListing, ServiceOrder
+from app.models.risk import RiskAlert
+from app.models.governance import GovernanceProposal, GovernanceSignature
 
 __all__ = [
     "User",
@@ -21,4 +23,7 @@ __all__ = [
     "AuditEvent",
     "ServiceListing",
     "ServiceOrder",
+    "RiskAlert",
+    "GovernanceProposal",
+    "GovernanceSignature",
 ]

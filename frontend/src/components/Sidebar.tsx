@@ -10,7 +10,8 @@ import {
   Code2,
   ShieldCheck,
   Zap,
-  ShoppingBag
+  ShoppingBag,
+  ShieldAlert
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -34,6 +35,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     { id: 'payments', label: 'Payments & Ledger', icon: ArrowLeftRight },
     { id: 'invoices', label: 'Invoices & Invoicing', icon: FileText },
     { id: 'central-bank', label: 'Central Bank Authority', icon: Landmark },
+    { id: 'risk-audit', label: 'Risk & Merkle Verifier', icon: ShieldAlert },
     { id: 'analytics', label: 'Economic Analytics', icon: BarChart3 },
     { id: 'developer', label: 'Agent SDK & APIs', icon: Code2 },
   ];

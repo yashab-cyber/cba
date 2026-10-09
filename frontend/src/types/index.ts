@@ -182,3 +182,30 @@ export interface KeypairResponse {
   key_algorithm: string;
   instructions: string;
 }
+
+export interface RiskAlert {
+  id: string;
+  agent_id: string;
+  transaction_id?: string | null;
+  risk_score: number;
+  severity: 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL';
+  anomaly_type: string;
+  details_json?: string;
+  status: 'ACTIVE' | 'RESOLVED' | 'FALSE_POSITIVE';
+  action_taken: string;
+  created_at: string;
+}
+
+export interface MerkleProofStep {
+  position: 'left' | 'right';
+  hash: string;
+}
+
+export interface MerkleProof {
+  entry_id: string;
+  leaf_hash: string;
+  merkle_root: string;
+  total_entries: number;
+  proof_path: MerkleProofStep[];
+}
+

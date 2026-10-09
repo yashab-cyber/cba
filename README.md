@@ -7,7 +7,7 @@
 [![React](https://img.shields.io/badge/React-19-blue.svg)](https://react.dev/)
 [![Accounting](https://img.shields.io/badge/Accounting-Double--Entry%20Zero--Sum-emerald.svg)]()
 [![Cryptography](https://img.shields.io/badge/Cryptography-Ed25519%20Curve25519-purple.svg)]()
-[![Tests](https://img.shields.io/badge/Pytest-24%20Passed-brightgreen.svg)]()
+[![Tests](https://img.shields.io/badge/Pytest-31%20Passed-brightgreen.svg)]()
 
 ---
 
@@ -21,11 +21,15 @@ CBA solves this by providing:
 - **Central Banking Authority**: Controlled monetary expansion (minting), treasury allocations, protocol fee collection, and permanent contraction (burning).
 - **Native Internal Currency (CBAC)**: CBA Credits computed with 6 decimal places of precision (`NUMERIC(20, 6)`), strictly prohibiting floating-point arithmetic.
 - **Strict Double-Entry Ledger**: Immutable append-only journal entries with atomic settlement and real-time zero-sum audits ($\sum \text{Debits} = \sum \text{Credits}$).
+- **Cryptographic Merkle Tree Ledger Verification**: Canonical SHA-256 binary Merkle tree generated over all ledger entries with independent inclusion proof audits ($O(\log N)$).
 - **Curve25519 (Ed25519) Cryptographic Identity**: Asymmetric payment signing with timestamp freshness windows ($\pm 300\text{s}$) to prevent prompt-injection spoofing and replay attacks.
+- **Real-Time Fraud & Drain Risk Engine**: Automated velocity burst detection, wallet-drain tripwires ($\ge 85\%$ balance transfer), and instant autonomous account freezing upon anomaly detection.
+- **Multi-Currency FX Engine**: Deterministic zero-loss exchange conversions across reserve credits (`CBAC`), compute slices (`CBAC_COMPUTE`), and simulated fiat pegs (`USD_SIM`).
+- **M-of-N Multi-Signature Governance**: Multi-party cryptographic threshold authorization for monetary policy, reserve expansion, and emergency interventions.
 - **Autonomous Service Marketplace**: Internal catalog for agents to discover, list, and order machine services (compute, inference, code, audits) with proof-of-purchase bearer tokens.
 - **Programmable Spending Policies**: Server-side guardrails enforcing per-transaction maximums, rolling 24-hour velocity limits, counterparty allowlists, and human approval escalation.
 - **Python SDK (`cba_sdk`)**: Developer client for integrating LangChain, CrewAI, AutoGen, and ReAct agents in 3 lines of code.
-- **Institutional Fintech Dashboard**: Modern React 19/TypeScript control center for inspecting wallets, approving invoices, monitoring currency velocity, and running live economic simulations.
+- **Institutional Fintech Dashboard**: Modern React 19/TypeScript control center for inspecting wallets, verifying Merkle proofs, monitoring risk anomalies, approving invoices, and running live economic simulations.
 
 ---
 
@@ -168,18 +172,22 @@ print(f"Payment Status: {receipt.status} (Tx ID: {receipt.transaction_id})")
 
 ## 5. Automated Tests
 
-Run the complete 24-test suite via Pytest:
+Run the complete 31-test suite via Pytest:
 ```bash
-PYTHONPATH=backend pytest -v backend/tests
+PYTHONPATH=backend:sdk pytest -v backend/tests
 ```
 
-All 24 test suites verify:
+All 31 test suites verify:
 - Atomic double-entry settlement & cryptographic SHA-256 hash chaining
 - Imbalanced journal rejection & negative balance prevention
 - Policy engine constraints (max per-tx, rolling 24h velocity limit, emergency freeze)
 - Ed25519 keypair generation, signature verification, and replay protection
 - Service marketplace discovery, ordering, and self-purchase rejection
-- Python SDK methods and FastAPI endpoints
+- Canonical SHA-256 binary Merkle tree root calculation and independent inclusion proofs
+- Automated fraud detection, velocity burst tripwires, and auto-freeze mitigation
+- Multi-currency FX conversions across CBAC, CBAC_COMPUTE, and USD_SIM with deterministic math
+- Multi-signature M-of-N governance proposal creation, signing, and quorum execution
+- Python SDK client methods and FastAPI endpoints
 
 ---
 

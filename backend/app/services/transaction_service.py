@@ -73,6 +73,17 @@ class TransactionService:
             if not is_allowed:
                 raise PolicyViolationError(reason)
 
+            # 4.1 Evaluate Anomaly & Risk Engine
+            from app.services.risk_service import RiskService
+            risk_score, severity, anomaly_type, action_taken = RiskService.evaluate_payment_risk(
+                db=db,
+                sender_wallet=sender_wallet,
+                recipient_wallet=recipient_wallet,
+                amount=amount
+            )
+            if action_taken == "AGENT_AUTO_FROZEN":
+                raise PolicyViolationError(f"High-Risk Transaction Blocked (Risk Score: {risk_score}/100, Anomaly: {anomaly_type}). Agent automatically frozen.")
+
         # 5. Create Transaction Record
         tx_id = f"tx_{uuid.uuid4().hex[:18]}"
         initial_status = "PENDING_APPROVAL" if requires_human_approval else "COMPLETED"

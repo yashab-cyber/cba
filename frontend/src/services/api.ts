@@ -198,4 +198,33 @@ export const api = {
 
   // Analytics
   getAnalytics: () => request<AnalyticsOverview>('/analytics/overview'),
+
+  // Phase 3 Advanced: Merkle & Cryptographic Ledger Verification
+  getMerkleRoot: () => request<{ merkle_root: string; total_ledger_entries: number; hash_algorithm: string }>('/advanced/merkle-root'),
+  getMerkleProof: (entry_id: string) => request<any>(`/advanced/merkle-proof/${entry_id}`),
+  verifyMerkleProof: (data: { leaf_hash: string; merkle_root: string; proof_path: any[] }) =>
+    request<{ is_valid: boolean; computed_root: string; expected_root: string; verification_message: string }>(
+      '/advanced/verify-merkle-proof',
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
+
+  // Phase 3 Advanced: Risk & Anomaly Alerts
+  getRiskAlerts: (status?: string) =>
+    request<any[]>(`/advanced/risk-alerts${status ? `?status_filter=${status}` : ''}`),
+  resolveRiskAlert: (alert_id: string, decision: string = 'RESOLVED') =>
+    request<any>(`/advanced/risk-alerts/${alert_id}/resolve?decision=${decision}`, { method: 'POST' }),
+
+  // Phase 3 Advanced: Multi-Currency FX Engine
+  getSupportedCurrencies: () => request<Record<string, any>>('/advanced/currencies'),
+  convertCurrency: (from_currency: string, to_currency: string, amount: string | number) =>
+    request<{
+      from_currency: string;
+      to_currency: string;
+      original_amount: string | number;
+      converted_amount: string | number;
+      effective_rate: string | number;
+    }>('/advanced/convert', {
+      method: 'POST',
+      body: JSON.stringify({ from_currency, to_currency, amount: Number(amount) }),
+    }),
 };

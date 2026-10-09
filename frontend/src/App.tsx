@@ -11,6 +11,7 @@ import { CentralBank } from './pages/CentralBank';
 import { Analytics } from './pages/Analytics';
 import { DeveloperSDK } from './pages/DeveloperSDK';
 import { Marketplace } from './pages/Marketplace';
+import { RiskAndAudit } from './pages/RiskAndAudit';
 import {
   Agent, Wallet, Transaction, PaymentRequest,
   MonetarySupply, ReconciliationReport, AnalyticsOverview
@@ -197,6 +198,10 @@ export function App() {
 
           {currentTab === 'developer' && (
             <DeveloperSDK />
+          )}
+
+          {currentTab === 'risk-audit' && (
+            <RiskAndAudit />
           )}
         </main>
       </div>
