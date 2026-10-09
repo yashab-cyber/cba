@@ -1,6 +1,7 @@
 import {
   Agent, Wallet, Transaction, TransactionReceipt, PaymentRequest,
-  MonetarySupply, ReconciliationReport, AnalyticsOverview, AuditEvent, SpendingPolicy
+  MonetarySupply, ReconciliationReport, AnalyticsOverview, AuditEvent, SpendingPolicy,
+  User
 } from '../types';
 
 const API_BASE = '/api/v1';
@@ -38,15 +39,45 @@ async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
 export const api = {
   // Auth
   login: async (email: string, password: string) => {
-    const data = await request<{ access_token: string; user: any }>('/auth/login', {
+    const data = await request<{ access_token: string; user: User }>('/auth/login', {
       method: 'POST',
       body: JSON.stringify({ email, password }),
     });
     localStorage.setItem('cba_token', data.access_token);
+    localStorage.setItem('cba_user', JSON.stringify(data.user));
     return data;
   },
 
-  getCurrentUser: () => request<any>('/auth/me'),
+  register: async (payload: { email: string; password: string; full_name?: string; organization?: string; role?: string; tier?: string }) => {
+    const data = await request<User>('/auth/register', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+    return data;
+  },
+
+  logout: () => {
+    localStorage.removeItem('cba_token');
+    localStorage.removeItem('cba_user');
+  },
+
+  getCurrentUser: () => request<User>('/auth/me'),
+
+  // User Management (Admin / Operator)
+  getUsers: (role_filter?: string) =>
+    request<User[]>(`/users${role_filter ? `?role_filter=${role_filter}` : ''}`),
+  getUser: (user_id: string) =>
+    request<User>(`/users/${user_id}`),
+  updateUser: (user_id: string, payload: Partial<User>) =>
+    request<User>(`/users/${user_id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    }),
+  toggleUserStatus: (user_id: string, is_active: boolean, reason?: string) =>
+    request<User>(`/users/${user_id}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ is_active, reason }),
+    }),
 
   // Central Bank
   getMonetarySupply: () => request<MonetarySupply>('/central-bank/supply'),

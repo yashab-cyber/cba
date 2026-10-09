@@ -44,6 +44,26 @@ def seed_database():
         else:
             print(f"[*] Admin user already exists: {admin_user.email}")
 
+        # 3.b Create Demo Developer User
+        dev_user = db.query(User).filter(User.email == "developer@cba.bank").first()
+        if not dev_user:
+            dev_user = User(
+                email="developer@cba.bank",
+                hashed_password=get_password_hash("CBA_Developer_2026!"),
+                full_name="Devin Vance",
+                organization="Autonomous AI Labs",
+                role="user",
+                tier="TIER_1",
+                kyc_status="VERIFIED",
+                is_active=True
+            )
+            db.add(dev_user)
+            db.commit()
+            db.refresh(dev_user)
+            print(f"[+] Demo Developer User created: {dev_user.email} (Password: CBA_Developer_2026!)")
+        else:
+            print(f"[*] Developer user already exists: {dev_user.email}")
+
         # 4. Mint Initial Monetary Base into Treasury
         treasury_wallet = db.query(Wallet).filter(Wallet.id == "wal_central_treasury").first()
         if treasury_wallet.cached_balance < Decimal("100000.000000"):
@@ -117,12 +137,13 @@ def seed_database():
         agent_keys = {}
         for ag_data in demo_agents_data:
             existing = db.query(Agent).filter(Agent.id == ag_data["id"]).first()
+            assigned_owner_id = dev_user.id if ag_data["id"] in ["agent_search_01", "agent_coder_02"] else admin_user.id
             if not existing:
                 agent = AgentService.create_agent(
                     db=db,
                     agent_id=ag_data["id"],
                     name=ag_data["name"],
-                    owner_id=admin_user.id,
+                    owner_id=assigned_owner_id,
                     description=ag_data["description"],
                     initial_policy=ag_data["policy"],
                     initial_funding=ag_data["funding"]
@@ -132,7 +153,10 @@ def seed_database():
                 print(f"[+] Agent Registered: {agent.name} (Wallet: {agent.wallet.id}, Bal: {agent.wallet.cached_balance} CBAC)")
                 print(f"    -> API Key: {raw_key}")
             else:
-                print(f"[*] Agent already exists: {existing.id} (Bal: {existing.wallet.cached_balance} CBAC)")
+                existing.owner_id = assigned_owner_id
+                db.add(existing)
+                print(f"[*] Agent already exists: {existing.id} (Owner: {existing.owner_id}, Bal: {existing.wallet.cached_balance} CBAC)")
+        db.commit()
 
         # 6. Execute sample transactions between agents
         agent_alpha = db.query(Agent).filter(Agent.id == "agent_search_01").first()

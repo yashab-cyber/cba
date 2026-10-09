@@ -9,9 +9,11 @@ from app.api.v1.audit import router as audit_router
 from app.api.v1.analytics import router as analytics_router
 from app.api.v1.marketplace import router as marketplace_router
 from app.api.v1.advanced import router as advanced_router
+from app.api.v1.users import router as users_router
 
 api_v1_router = APIRouter()
 api_v1_router.include_router(auth_router)
+api_v1_router.include_router(users_router)
 api_v1_router.include_router(agents_router)
 api_v1_router.include_router(wallets_router)
 api_v1_router.include_router(payments_router)

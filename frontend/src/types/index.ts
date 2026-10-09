@@ -209,3 +209,17 @@ export interface MerkleProof {
   proof_path: MerkleProofStep[];
 }
 
+export interface User {
+  id: string;
+  email: string;
+  full_name?: string;
+  organization?: string;
+  role: 'admin' | 'operator' | 'auditor' | 'user' | 'developer';
+  tier?: string;
+  kyc_status?: string;
+  is_active: boolean;
+  created_at: string;
+  last_login_at?: string;
+  agent_count?: number;
+}
+

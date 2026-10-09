@@ -12,13 +12,17 @@ import { Analytics } from './pages/Analytics';
 import { DeveloperSDK } from './pages/DeveloperSDK';
 import { Marketplace } from './pages/Marketplace';
 import { RiskAndAudit } from './pages/RiskAndAudit';
+import { UserManagement } from './pages/UserManagement';
+import { AuthPortal } from './pages/AuthPortal';
 import {
   Agent, Wallet, Transaction, PaymentRequest,
-  MonetarySupply, ReconciliationReport, AnalyticsOverview
+  MonetarySupply, ReconciliationReport, AnalyticsOverview, User
 } from './types';
 import { api } from './services/api';
 
 export function App() {
+  const [user, setUser] = useState<User | null>(null);
+  const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState('overview');
   const [supply, setSupply] = useState<MonetarySupply | null>(null);
   const [reconciliation, setReconciliation] = useState<ReconciliationReport | null>(null);
@@ -35,19 +39,24 @@ export function App() {
   const [mintAmount, setMintAmount] = useState('500000');
   const [mintReason, setMintReason] = useState('Treasury reserve expansion');
 
-  // Authenticate default operator on load if not set
+  // Verify existing session on initial load
   useEffect(() => {
-    const initAuth = async () => {
-      try {
-        if (!localStorage.getItem('cba_token')) {
-          await api.login('admin@cba.bank', 'CBA_Master_Operator_2026!');
+    const checkSession = async () => {
+      const token = localStorage.getItem('cba_token');
+      if (token) {
+        try {
+          const profile = await api.getCurrentUser();
+          setUser(profile);
+          fetchAllData();
+        } catch (err) {
+          console.warn('Session expired or invalid:', err);
+          api.logout();
+          setUser(null);
         }
-      } catch (err) {
-        console.warn('Auto-login notice:', err);
       }
-      fetchAllData();
+      setIsAuthChecking(false);
     };
-    initAuth();
+    checkSession();
   }, []);
 
   const fetchAllData = async () => {
@@ -75,10 +84,24 @@ export function App() {
     }
   };
 
+  const handleAuthSuccess = (authenticatedUser: User) => {
+    setUser(authenticatedUser);
+    setCurrentTab('overview');
+    fetchAllData();
+  };
+
+  const handleLogout = () => {
+    api.logout();
+    setUser(null);
+    setCurrentTab('overview');
+    setWallets([]);
+    setAgents([]);
+    setTransactions([]);
+  };
+
   const handleRunSimulation = async () => {
     try {
       setIsSimulating(true);
-      // Run quick payment cycle between agents
       if (agents.length >= 2) {
         const buyer = agents[0];
         const provider = agents[1];
@@ -121,12 +144,30 @@ export function App() {
     }
   };
 
+  // Render Auth Portal if user is not authenticated
+  if (isAuthChecking) {
+    return (
+      <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-slate-400 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+          <span>Verifying cryptographic session...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <AuthPortal onAuthSuccess={handleAuthSuccess} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#0a0f1d] text-slate-100 flex">
       {/* Sidebar */}
       <Sidebar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
+        user={user}
+        onLogout={handleLogout}
         onRunSimulation={handleRunSimulation}
         isSimulating={isSimulating}
       />
@@ -136,8 +177,10 @@ export function App() {
         <Navbar
           currentTab={currentTab}
           supply={supply}
+          user={user}
           onRefresh={fetchAllData}
           onOpenMintModal={() => setIsGlobalMintOpen(true)}
+          onLogout={handleLogout}
         />
 
         <main className="flex-1 p-6 max-w-7xl w-full mx-auto">
@@ -192,16 +235,20 @@ export function App() {
             />
           )}
 
+          {currentTab === 'risk-audit' && (
+            <RiskAndAudit />
+          )}
+
+          {currentTab === 'users' && (
+            <UserManagement currentUser={user} />
+          )}
+
           {currentTab === 'analytics' && (
             <Analytics analytics={analytics} />
           )}
 
           {currentTab === 'developer' && (
             <DeveloperSDK />
-          )}
-
-          {currentTab === 'risk-audit' && (
-            <RiskAndAudit />
           )}
         </main>
       </div>

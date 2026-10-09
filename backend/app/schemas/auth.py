@@ -9,14 +9,35 @@ class UserLogin(BaseModel):
 class UserCreate(BaseModel):
     email: EmailStr
     password: str
-    role: Optional[str] = "operator"
+    full_name: Optional[str] = None
+    organization: Optional[str] = None
+    role: Optional[str] = "user" # user, operator, admin, auditor
+    tier: Optional[str] = "TIER_1"
+
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    organization: Optional[str] = None
+    role: Optional[str] = None
+    tier: Optional[str] = None
+    kyc_status: Optional[str] = None
+    is_active: Optional[bool] = None
+
+class UserStatusUpdate(BaseModel):
+    is_active: bool
+    reason: Optional[str] = None
 
 class UserResponse(BaseModel):
     id: str
     email: str
+    full_name: Optional[str] = None
+    organization: Optional[str] = None
     role: str
+    tier: Optional[str] = "TIER_1"
+    kyc_status: Optional[str] = "VERIFIED"
     is_active: bool
     created_at: datetime
+    last_login_at: Optional[datetime] = None
+    agent_count: Optional[int] = 0
 
     class Config:
         from_attributes = True
@@ -30,3 +51,4 @@ class TokenPayload(BaseModel):
     sub: Optional[str] = None
     role: Optional[str] = None
     exp: Optional[int] = None
+

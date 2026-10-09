@@ -20,6 +20,10 @@ def list_wallets(
     db: Session = Depends(get_db)
 ):
     query = db.query(Wallet)
+    # Role-Based Scoping: Non-admin users only see wallets of their own agents
+    if current_user.role not in ["admin", "operator", "auditor"]:
+        user_agent_ids = [a.id for a in current_user.agents]
+        query = query.filter(Wallet.agent_id.in_(user_agent_ids))
     if wallet_type:
         query = query.filter(Wallet.wallet_type == wallet_type.upper())
     wallets = query.order_by(Wallet.created_at.desc()).all()
@@ -28,11 +32,17 @@ def list_wallets(
 @router.get("/{wallet_id}", response_model=WalletResponse)
 def get_wallet(
     wallet_id: str,
+    current_user = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     wallet = db.query(Wallet).filter(Wallet.id == wallet_id).first()
     if not wallet:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Wallet '{wallet_id}' not found")
+    
+    if current_user.role not in ["admin", "operator", "auditor"]:
+        user_agent_ids = [a.id for a in current_user.agents]
+        if wallet.agent_id not in user_agent_ids:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied to this wallet")
     return WalletResponse.model_validate(wallet)
 
 @router.get("/{wallet_id}/balance", response_model=WalletBalanceResponse)

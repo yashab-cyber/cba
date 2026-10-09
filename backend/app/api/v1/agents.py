@@ -55,6 +55,9 @@ def list_agents(
     db: Session = Depends(get_db)
 ):
     query = db.query(Agent)
+    # Role-Based Scoping: Non-admin users only see agents they own
+    if current_user.role not in ["admin", "operator", "auditor"]:
+        query = query.filter(Agent.owner_id == current_user.id)
     if status_filter:
         query = query.filter(Agent.status == status_filter.upper())
     agents = query.order_by(Agent.created_at.desc()).all()
@@ -84,6 +87,12 @@ def get_agent_detail(
     agent = db.query(Agent).filter(Agent.id == agent_id).first()
     if not agent:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Agent '{agent_id}' not found")
+
+    if current_user.role not in ["admin", "operator", "auditor"] and agent.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Unauthorized: You do not have permission to view this agent's private credentials and policies."
+        )
 
     policy_resp = None
     if agent.spending_policy:

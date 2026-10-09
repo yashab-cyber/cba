@@ -159,9 +159,21 @@ def list_transactions(
     agent_id: Optional[str] = None,
     limit: int = 100,
     offset: int = 0,
+    current_user: Optional[User] = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     query = db.query(Transaction)
+
+    # Scoping for non-admin users
+    if current_user and current_user.role not in ["admin", "operator", "auditor"]:
+        user_wallet_ids = [a.wallet.id for a in current_user.agents if a.wallet]
+        query = query.filter(
+            or_(
+                Transaction.sender_wallet_id.in_(user_wallet_ids),
+                Transaction.recipient_wallet_id.in_(user_wallet_ids)
+            )
+        )
+
     if status_filter:
         query = query.filter(Transaction.status == status_filter.upper())
     if agent_id:
