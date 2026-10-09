@@ -39,6 +39,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const isAuditor = user?.role === 'auditor';
 
   const navItems = [
+    { id: 'home', label: 'Public Home & About', icon: Landmark },
     { id: 'overview', label: 'Overview', icon: LayoutDashboard },
     { id: 'marketplace', label: 'Service Marketplace', icon: ShoppingBag },
     { id: 'wallets', label: 'Wallets & Balances', icon: WalletIcon },
@@ -64,13 +65,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     <aside className="w-64 bg-[#0a0f1d] border-r border-[#1e293b] flex flex-col h-screen fixed left-0 top-0 z-30 select-none">
       {/* Brand Header */}
       <div className="p-5 border-b border-[#1e293b] flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center shadow-lg shadow-blue-500/20 text-white font-bold text-xl tracking-wider">
-          CBA
-        </div>
+        <img
+          src="/logo.png"
+          alt="CBA Logo"
+          className="w-10 h-10 object-contain rounded-xl shadow-lg shadow-blue-500/20"
+        />
         <div>
           <div className="font-semibold text-slate-100 text-sm tracking-wide flex items-center gap-1.5">
             Central Bank
-            <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono">v1.2</span>
+            <span className="text-[10px] bg-blue-500/20 text-blue-400 border border-blue-500/30 px-1.5 py-0.5 rounded font-mono">v1.3</span>
           </div>
           <p className="text-[11px] text-slate-400">Financial OS for AI Agents</p>
         </div>

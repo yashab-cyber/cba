@@ -14,6 +14,7 @@ import { Marketplace } from './pages/Marketplace';
 import { RiskAndAudit } from './pages/RiskAndAudit';
 import { UserManagement } from './pages/UserManagement';
 import { AuthPortal } from './pages/AuthPortal';
+import { LandingPage } from './pages/LandingPage';
 import {
   Agent, Wallet, Transaction, PaymentRequest,
   MonetarySupply, ReconciliationReport, AnalyticsOverview, User
@@ -22,6 +23,7 @@ import { api } from './services/api';
 
 export function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [authViewMode, setAuthViewMode] = useState<'none' | 'signin' | 'signup'>('none');
   const [isAuthChecking, setIsAuthChecking] = useState(true);
   const [currentTab, setCurrentTab] = useState('overview');
   const [supply, setSupply] = useState<MonetarySupply | null>(null);
@@ -86,6 +88,7 @@ export function App() {
 
   const handleAuthSuccess = (authenticatedUser: User) => {
     setUser(authenticatedUser);
+    setAuthViewMode('none');
     setCurrentTab('overview');
     fetchAllData();
   };
@@ -93,6 +96,7 @@ export function App() {
   const handleLogout = () => {
     api.logout();
     setUser(null);
+    setAuthViewMode('none');
     setCurrentTab('overview');
     setWallets([]);
     setAgents([]);
@@ -144,7 +148,7 @@ export function App() {
     }
   };
 
-  // Render Auth Portal if user is not authenticated
+  // Checking session
   if (isAuthChecking) {
     return (
       <div className="min-h-screen bg-[#070b14] flex items-center justify-center text-slate-400 text-xs">
@@ -156,8 +160,38 @@ export function App() {
     );
   }
 
+  // If not logged in: show Landing Page by default or Auth Portal when requested
   if (!user) {
-    return <AuthPortal onAuthSuccess={handleAuthSuccess} />;
+    if (authViewMode === 'signin' || authViewMode === 'signup') {
+      return (
+        <AuthPortal
+          initialMode={authViewMode}
+          onAuthSuccess={handleAuthSuccess}
+          onBackToHome={() => setAuthViewMode('none')}
+        />
+      );
+    }
+
+    return (
+      <LandingPage
+        user={null}
+        onOpenAuth={(mode) => setAuthViewMode(mode)}
+        onEnterDashboard={() => setAuthViewMode('signin')}
+        onRunSimulation={handleRunSimulation}
+      />
+    );
+  }
+
+  // If user navigated to Public Home while logged in:
+  if (currentTab === 'home') {
+    return (
+      <LandingPage
+        user={user}
+        onOpenAuth={() => {}}
+        onEnterDashboard={() => setCurrentTab('overview')}
+        onRunSimulation={handleRunSimulation}
+      />
+    );
   }
 
   return (
@@ -189,12 +223,14 @@ export function App() {
               supply={supply}
               transactions={transactions}
               agents={agents}
+              user={user}
               onSelectTransaction={(tx) => {
                 setSelectedTx(tx);
                 setCurrentTab('payments');
               }}
               onRunSimulation={handleRunSimulation}
               isSimulating={isSimulating}
+              onNavigateTab={(tab) => setCurrentTab(tab)}
             />
           )}
 

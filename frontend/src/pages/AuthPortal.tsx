@@ -5,10 +5,16 @@ import { User as UserType } from '../types';
 
 interface AuthPortalProps {
   onAuthSuccess: (user: UserType) => void;
+  initialMode?: 'signin' | 'signup';
+  onBackToHome?: () => void;
 }
 
-export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthSuccess }) => {
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
+export const AuthPortal: React.FC<AuthPortalProps> = ({
+  onAuthSuccess,
+  initialMode = 'signin',
+  onBackToHome
+}) => {
+  const [mode, setMode] = useState<'signin' | 'signup'>(initialMode);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -46,7 +52,6 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthSuccess }) => {
           tier,
         });
         setSuccessMessage('Account registered successfully! Signing you in...');
-        // Auto-login after registration
         const loginRes = await api.login(email, password);
         setTimeout(() => {
           onAuthSuccess(loginRes.user);
@@ -67,10 +72,24 @@ export const AuthPortal: React.FC<AuthPortalProps> = ({ onAuthSuccess }) => {
 
       {/* Main Container */}
       <div className="w-full max-w-md z-10 my-8">
+        {/* Back to Home Button */}
+        {onBackToHome && (
+          <button
+            onClick={onBackToHome}
+            className="mb-4 text-xs text-slate-400 hover:text-white flex items-center gap-1.5 transition"
+          >
+            <span>← Back to Public Home</span>
+          </button>
+        )}
+
         {/* Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 shadow-xl shadow-blue-500/25 mb-3 border border-blue-400/30">
-            <Landmark className="w-7 h-7 text-white" />
+          <div className="inline-flex items-center justify-center mb-3">
+            <img
+              src="/logo.png"
+              alt="CBA Logo"
+              className="w-16 h-16 object-contain rounded-2xl shadow-xl shadow-blue-500/25 border border-blue-400/20"
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight text-white flex items-center justify-center gap-2">
             Central Bank of Agents
